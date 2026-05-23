@@ -1,0 +1,35 @@
+# Secrets — never commit
+key.env
+.env
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Python build / cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# Jupyter
+.jupyter/
+
+# HuggingFace / dataset caches (when run from repo root)
+.cache/
+data/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
