@@ -1,0 +1,970 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RAG Tutorial Exam — Notebooks 1, 2, 3, 6</title>
+<style>
+  :root {
+    --bg:#fafafa; --card:#fff; --border:#e2e8f0; --text:#1e293b; --muted:#64748b;
+    --primary:#2563eb; --primary-hover:#1d4ed8;
+    --green:#16a34a; --green-bg:#dcfce7;
+    --red:#dc2626;   --red-bg:#fee2e2;
+    --amber:#d97706; --amber-bg:#fef3c7;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--text); margin: 0; line-height: 1.55; }
+  header { background: white; border-bottom: 1px solid var(--border);
+    padding: 14px 24px; position: sticky; top: 0; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  header h1 { font-size: 17px; margin: 0; font-weight: 600; }
+  header .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  header .score { font-weight: 600; padding: 6px 12px; background: var(--bg);
+    border-radius: 6px; border: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+  button { background: var(--primary); color: white; border: none; padding: 6px 12px;
+    border-radius: 6px; cursor: pointer; font-size: 14px; font-family: inherit; }
+  button:hover { background: var(--primary-hover); }
+  button.secondary { background: white; color: var(--text); border: 1px solid var(--border); }
+  button.secondary:hover { background: var(--bg); }
+  nav { background: white; border-bottom: 1px solid var(--border);
+    padding: 6px 24px; display: flex; gap: 4px; flex-wrap: wrap; }
+  nav a { text-decoration: none; color: var(--muted);
+    padding: 6px 10px; border-radius: 4px; font-size: 14px; }
+  nav a:hover { background: var(--bg); color: var(--text); }
+  main { max-width: 880px; margin: 0 auto; padding: 24px; }
+  .intro { background: white; border: 1px solid var(--border); border-radius: 8px;
+    padding: 16px 18px; margin-bottom: 28px; font-size: 14px; color: var(--muted); }
+  .intro p { margin: 0 0 8px 0; }
+  .intro p:last-child { margin-bottom: 0; }
+  .intro .legend { display: inline-block; font-size: 11px;
+    background: var(--bg); border: 1px solid var(--border);
+    padding: 2px 6px; border-radius: 4px; color: var(--text); margin: 0 2px; font-weight: 500; }
+  section { margin-bottom: 36px; }
+  section h2 { font-size: 21px; border-bottom: 2px solid var(--border);
+    padding-bottom: 8px; margin-top: 0;
+    display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  section h2 .sub { font-size: 13px; color: var(--muted); font-weight: normal; }
+  section h2 .secscore { font-size: 13px; color: var(--muted); font-weight: 500;
+    margin-left: auto; font-variant-numeric: tabular-nums; }
+  .q { background: var(--card); border: 1px solid var(--border);
+    border-left: 4px solid var(--border); border-radius: 8px;
+    padding: 14px 18px; margin-bottom: 14px; transition: border-color 0.15s; }
+  .q.correct { border-left-color: var(--green); }
+  .q.wrong   { border-left-color: var(--red); }
+  .q.partial { border-left-color: var(--amber); }
+  .q h3 { font-size: 14px; margin: 0 0 6px 0; color: var(--muted); font-weight: 500; }
+  .q .stem { margin: 0 0 10px 0; }
+  .q .stem code { background: var(--bg); padding: 1px 5px; border-radius: 3px;
+    font-size: 0.92em; border: 1px solid var(--border); font-family: var(--mono); }
+  .q .stem .math { font-family: var(--mono); white-space: nowrap; }
+  .q .tag { display: inline-block; font-size: 10.5px; background: #eff6ff;
+    border: 1px solid #bfdbfe; color: #1d4ed8;
+    padding: 1px 6px; border-radius: 4px; margin-left: 6px; font-weight: 500;
+    vertical-align: middle; }
+  .q .tag.multi { background: #fef3c7; border-color: #fde68a; color: #92400e; }
+  .q .tag.compute { background: #ecfccb; border-color: #d9f99d; color: #3f6212; }
+  .options label { display: block; padding: 6px 10px; margin: 3px 0;
+    border-radius: 4px; cursor: pointer; border: 1px solid transparent; }
+  .options label:hover { background: var(--bg); }
+  .options input { margin-right: 8px; }
+  .options label.ans-correct { background: var(--green-bg); border-color: #86efac; }
+  .options label.ans-wrong   { background: var(--red-bg);   border-color: #fca5a5; }
+  .options label.ans-missed  { background: #f0f9ff; border-color: #bae6fd; }
+  .q .actions { margin-top: 10px; display: flex; gap: 8px; }
+  .answer { margin-top: 12px; padding: 12px 14px; border-radius: 6px; display: none;
+    font-size: 14px; }
+  .answer.show { display: block; }
+  .answer.correct { background: var(--green-bg); border: 1px solid #86efac; }
+  .answer.wrong   { background: var(--red-bg);   border: 1px solid #fca5a5; }
+  .answer.partial { background: var(--amber-bg); border: 1px solid #fde68a; }
+  .answer .verdict { font-weight: 600; display: block; margin-bottom: 6px; }
+  .answer .explain { color: var(--text); }
+  .answer .explain code { background: rgba(0,0,0,0.05); padding: 1px 5px;
+    border-radius: 3px; font-family: var(--mono); font-size: 0.92em; }
+  .answer .explain .math { font-family: var(--mono); }
+  @media (max-width: 640px) {
+    header { padding: 12px 14px; }
+    header h1 { font-size: 15px; }
+    main { padding: 16px; }
+    nav { padding: 6px 14px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>RAG Tutorial Exam &mdash; Notebooks 1, 2, 3, 6</h1>
+  <div class="controls">
+    <span class="score">Score: <span id="score">0</span> / <span id="total">36</span></span>
+    <button class="secondary" onclick="revealAll()">Reveal all</button>
+    <button class="secondary" onclick="resetAll()">Reset</button>
+  </div>
+</header>
+
+<nav>
+  <a href="#s1">&sect;1 Retrieval Basics</a>
+  <a href="#s2">&sect;2 Semantic Retrieval</a>
+  <a href="#s3">&sect;3 Basic RAG</a>
+  <a href="#s4">&sect;4 Evaluation</a>
+</nav>
+
+<main>
+
+<div class="intro">
+  <p><strong>How to use this exam.</strong> Pick an answer (radio = one choice, checkbox = pick all that apply), then press <em>Check</em>. The card turns green for correct, red for wrong, amber for partially-correct multi-select. The explanation shows the worked solution.</p>
+  <p><strong>Tags:</strong>
+    <span class="legend">compute</span> arithmetic / formula application &middot;
+    <span class="legend">multi</span> multiple correct answers &middot;
+    no tag = single-answer concept question.
+  </p>
+  <p><strong>Scoring:</strong> 1 point per question. Multi-select needs <em>exactly</em> the right set to score.</p>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 1 -->
+<!-- ============================================================ -->
+<section id="s1">
+  <h2>&sect;1 Retrieval Basics <span class="sub">(notebook 1)</span><span class="secscore" id="ss1">0 / 12</span></h2>
+
+  <div class="q" id="q1.1">
+    <h3>Q1.1 <span class="tag compute">compute</span></h3>
+    <p class="stem">Query tokens = <code>{cat, dog, mouse}</code>. Document tokens = <code>{the, cat, and, dog, play}</code>. What is the Jaccard similarity?</p>
+    <div class="options">
+      <label><input type="radio" name="q1.1" value="A"> A) 2 / 5 = 0.40</label>
+      <label><input type="radio" name="q1.1" value="B"> B) 2 / 6 &asymp; 0.333</label>
+      <label><input type="radio" name="q1.1" value="C"> C) 2 / 8 = 0.25</label>
+      <label><input type="radio" name="q1.1" value="D"> D) 3 / 6 = 0.5</label>
+    </div>
+    <div class="actions"><button onclick="check('q1.1')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+  <div class="q" id="q1.2">
+    <h3>Q1.2 <span class="tag compute">compute</span></h3>
+    <p class="stem">Given <span class="math">a = [2, &minus;1, 3]</span> and <span class="math">b = [1, 4, 2]</span>, compute <span class="math">a &middot; b</span>.</p>
+    <div class="options">
+      <label><input type="radio" name="q1.2" value="A"> A) 4</label>
+      <label><input type="radio" name="q1.2" value="B"> B) 10</label>
+      <label><input type="radio" name="q1.2" value="C"> C) 14</label>
+      <label><input type="radio" name="q1.2" value="D"> D) 6</label>
+    </div>
+    <div class="actions"><button onclick="check('q1.2')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+  <div class="q" id="q1.3">
+    <h3>Q1.3 <span class="tag compute">compute</span></h3>
+    <p class="stem"><span class="math">a = [3, 4]</span>, <span class="math">b = [4, 3]</span>. The cosine similarity <span class="math">cos(a, b)</span> is:</p>
+    <div class="options">
+      <label><input type="radio" name="q1.3" value="A"> A) 0.96</label>
+      <label><input type="radio" name="q1.3" value="B"> B) 1.00</label>
+      <label><input type="radio" name="q1.3" value="C"> C) 0.50</label>
+      <label><input type="radio" name="q1.3" value="D"> D) 0.84</label>
+    </div>
+    <div class="actions"><button onclick="check('q1.3')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+  <div class="q" id="q1.4">
+    <h3>Q1.4 <span class="tag compute">compute</span></h3>
+    <p class="stem">Two binary bag-of-words vectors over a shared 5-word vocabulary: <span class="math">a = [1, 0, 1, 1, 0]</span>, <span class="math">b = [1, 1, 1, 0, 0]</span>. What is Jaccard(a, b)?</p>
+    <div class="options">
+      <label><input type="radio" name="q1.4" value="A"> A) 0.25</label>
+      <label><input type="radio" name="q1.4" value="B"> B) 0.40</label>
+      <label><input type="radio" name="q1.4" value="C"> C) 0.50</label>
+      <label><input type="radio" name="q1.4" value="D"> D) 0.67</label>
+    </div>
+    <div class="actions"><button onclick="check('q1.4')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+  <div class="q" id="q1.6">
+    <h3>Q1.6 <span class="tag multi">multi</span></h3>
+    <p class="stem">Which of the following are <em>true</em> weaknesses of Jaccard similarity?</p>
+    <div class="options">
+      <label><input type="checkbox" name="q1.6" value="A"> A) It treats documents as sets &mdash; repeating an informative term doesn't help the score</label>
+      <label><input type="checkbox" name="q1.6" value="B"> B) <code>dog</code> and <code>dogs</code> are different strings, so it treats them as unrelated</label>
+      <label><input type="checkbox" name="q1.6" value="C"> C) Stopwords like <code>the</code> inflate both the intersection and the union, diluting the score</label>
+      <label><input type="checkbox" name="q1.6" value="D"> D) It can detect synonyms like <code>feline</code> &harr; <code>cat</code></label>
+    </div>
+    <div class="actions"><button onclick="check('q1.6')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+  <div class="q" id="q1.7">
+    <h3>Q1.7</h3>
+    <p class="stem">In BM25, what does the parameter <span class="math">k<sub>1</sub></span> (typically 1.2&ndash;2.0) control?</p>
+    <div class="options">
+      <label><input type="radio" name="q1.7" value="A"> A) TF saturation &mdash; how quickly additional occurrences of a term stop helping the score</label>
+      <label><input type="radio" name="q1.7" value="B"> B) Length normalization &mdash; how much longer documents get penalized</label>
+      <label><input type="radio" name="q1.7" value="C"> C) The magnitude of the IDF term</label>
+      <label><input type="radio" name="q1.7" value="D"> D) The number of documents returned by the search</label>
+    </div>
+    <div class="actions"><button onclick="check('q1.7')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+  <div class="q" id="q1.8">
+    <h3>Q1.8 <span class="tag multi">multi</span></h3>
+    <p class="stem">Which similarity measures can be written as a dot product on an appropriate sparse vector representation?</p>
+    <div class="options">
+      <label><input type="checkbox" name="q1.8" value="A"> A) Jaccard on binary bag-of-words (it's a <em>normalized</em> dot product)</label>
+      <label><input type="checkbox" name="q1.8" value="B"> B) TF-IDF cosine</label>
+      <label><input type="checkbox" name="q1.8" value="C"> C) BM25 (IDF-weighted, length-normalized term-frequency vector)</label>
+      <label><input type="checkbox" name="q1.8" value="D"> D) Levenshtein / edit distance</label>
+    </div>
+    <div class="actions"><button onclick="check('q1.8')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+  <div class="q" id="q1.9">
+    <h3>Q1.9</h3>
+    <p class="stem">The notebook calls the dot product a "weighted sum of features". What does that interpretation buy you that the set-based Jaccard view does not?</p>
+    <div class="options">
+      <label><input type="radio" name="q1.9" value="A"> A) Each feature contributes additively, weighted by sign and magnitude &mdash; positive and negative contributions can <em>cancel</em>, letting one inner product be selective</label>
+      <label><input type="radio" name="q1.9" value="B"> B) Features are multiplied together pairwise rather than added</label>
+      <label><input type="radio" name="q1.9" value="C"> C) Only positive features contribute &mdash; negative ones are zeroed out</label>
+      <label><input type="radio" name="q1.9" value="D"> D) The result is always non-negative</label>
+    </div>
+    <div class="actions"><button onclick="check('q1.9')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+  <div class="q" id="q1.10">
+    <h3>Q1.10 <span class="tag">scenario</span></h3>
+    <p class="stem">You run BM25 over a legal corpus. Users complain that a 100-page contract that mentions "patent infringement" once ranks <em>above</em> a 2-page memo that mentions the phrase 8 times. Which BM25 parameter most directly controls this length-vs-frequency tradeoff &mdash; i.e. the penalty applied to longer documents?</p>
+    <div class="options">
+      <label><input type="radio" name="q1.10" value="A"> A) <span class="math">k<sub>1</sub></span> (TF saturation)</label>
+      <label><input type="radio" name="q1.10" value="B"> B) <span class="math">b</span> (length normalization)</label>
+      <label><input type="radio" name="q1.10" value="C"> C) The IDF term</label>
+      <label><input type="radio" name="q1.10" value="D"> D) The corpus size <span class="math">N</span></label>
+    </div>
+    <div class="actions"><button onclick="check('q1.10')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+  <div class="q" id="q1.11">
+    <h3>Q1.11</h3>
+    <p class="stem">BM25 saturates the term-frequency contribution &mdash; doubling TF does not double its contribution to the score. What is the intuition behind this design?</p>
+    <div class="options">
+      <label><input type="radio" name="q1.11" value="A"> A) A document that mentions a query term 10 times is not 10&times; more relevant than one that mentions it once &mdash; the marginal value of additional repetitions diminishes</label>
+      <label><input type="radio" name="q1.11" value="B"> B) Computing high powers of TF is too slow on large corpora</label>
+      <label><input type="radio" name="q1.11" value="C"> C) Saturation prevents 32-bit floating-point overflow</label>
+      <label><input type="radio" name="q1.11" value="D"> D) Without saturation, the IDF term is forced to zero</label>
+    </div>
+    <div class="actions"><button onclick="check('q1.11')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+  <div class="q" id="q1.12">
+    <h3>Q1.12 <span class="tag multi">multi</span></h3>
+    <p class="stem">Compared with Jaccard on binary bag-of-words, BM25 additionally captures which of the following signals?</p>
+    <div class="options">
+      <label><input type="checkbox" name="q1.12" value="A"> A) How often a term appears in the document (term frequency)</label>
+      <label><input type="checkbox" name="q1.12" value="B"> B) How rare a term is across the corpus (inverse document frequency)</label>
+      <label><input type="checkbox" name="q1.12" value="C"> C) Document length normalization &mdash; a hit in a short document is worth more than the same hit in a long one</label>
+      <label><input type="checkbox" name="q1.12" value="D"> D) Semantic synonymy between query and document tokens (e.g. <code>cat</code> &harr; <code>feline</code>)</label>
+    </div>
+    <div class="actions"><button onclick="check('q1.12')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+  <div class="q" id="q1.13">
+    <h3>Q1.13</h3>
+    <p class="stem">BM25's IDF formula <span class="math">IDF(t) = ln((N &minus; n<sub>t</sub> + 0.5) / (n<sub>t</sub> + 0.5))</span> has a particular quirk for terms that appear in <em>almost every</em> document of the corpus (the textbook example: <code>the</code>). What happens to IDF in that regime?</p>
+    <div class="options">
+      <label><input type="radio" name="q1.13" value="A"> A) IDF approaches +&infin; &mdash; common terms are heavily rewarded</label>
+      <label><input type="radio" name="q1.13" value="B"> B) IDF approaches 0 &mdash; common terms are simply ignored</label>
+      <label><input type="radio" name="q1.13" value="C"> C) IDF goes <em>negative</em> &mdash; matching the term actively lowers the score</label>
+      <label><input type="radio" name="q1.13" value="D"> D) IDF is undefined for these terms; they must be filtered as stopwords before scoring</label>
+    </div>
+    <div class="actions"><button onclick="check('q1.13')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION 2 -->
+<!-- ============================================================ -->
+<section id="s2">
+  <h2>&sect;2 Semantic Retrieval <span class="sub">(notebook 2)</span><span class="secscore" id="ss2">0 / 10</span></h2>
+
+  <div class="q" id="q2.1">
+    <h3>Q2.1 <span class="tag compute">compute</span></h3>
+    <p class="stem">Two unit-norm embeddings <span class="math">a = [0.6, 0.8]</span> and <span class="math">b = [0.8, 0.6]</span>. The cosine similarity is:</p>
+    <div class="options">
+      <label><input type="radio" name="q2.1" value="A"> A) 0.48</label>
+      <label><input type="radio" name="q2.1" value="B"> B) 0.96</label>
+      <label><input type="radio" name="q2.1" value="C"> C) 1.00</label>
+      <label><input type="radio" name="q2.1" value="D"> D) 0.50</label>
+    </div>
+    <div class="actions"><button onclick="check('q2.1')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+  <div class="q" id="q2.2">
+    <h3>Q2.2</h3>
+    <p class="stem"><code>sentence-transformers/all-MiniLM-L6-v2</code> produces sentence embeddings in which space?</p>
+    <div class="options">
+      <label><input type="radio" name="q2.2" value="A"> A) &reals;<sup>768</sup></label>
+      <label><input type="radio" name="q2.2" value="B"> B) &reals;<sup>384</sup></label>
+      <label><input type="radio" name="q2.2" value="C"> C) &reals;<sup>512</sup></label>
+      <label><input type="radio" name="q2.2" value="D"> D) &reals;<sup>1024</sup></label>
+    </div>
+    <div class="actions"><button onclick="check('q2.2')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+  <div class="q" id="q2.3">
+    <h3>Q2.3 <span class="tag compute">compute</span></h3>
+    <p class="stem">A batch of 2 sentences is tokenized to a padded sequence length of 8. The model has hidden dim 384. What is the shape of <code>last_hidden_state</code>?</p>
+    <div class="options">
+      <label><input type="radio" name="q2.3" value="A"> A) (2, 8, 384)</label>
+      <label><input type="radio" name="q2.3" value="B"> B) (8, 2, 384)</label>
+      <label><input type="radio" name="q2.3" value="C"> C) (2, 384)</label>
+      <label><input type="radio" name="q2.3" value="D"> D) (16, 384)</label>
+    </div>
+    <div class="actions"><button onclick="check('q2.3')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+  <div class="q" id="q2.4">
+    <h3>Q2.4 <span class="tag compute">compute</span></h3>
+    <p class="stem">A single sentence has 4 token positions with hidden vectors <span class="math">h<sub>1</sub>, h<sub>2</sub>, h<sub>3</sub>, h<sub>4</sub></span>. The attention mask is <code>[1, 1, 1, 0]</code> (last position is padding). The mean-pooled output is:</p>
+    <div class="options">
+      <label><input type="radio" name="q2.4" value="A"> A) (h<sub>1</sub> + h<sub>2</sub> + h<sub>3</sub> + h<sub>4</sub>) / 4</label>
+      <label><input type="radio" name="q2.4" value="B"> B) (h<sub>1</sub> + h<sub>2</sub> + h<sub>3</sub>) / 3</label>
+      <label><input type="radio" name="q2.4" value="C"> C) (h<sub>1</sub> + h<sub>2</sub> + h<sub>3</sub>) / 4</label>
+      <label><input type="radio" name="q2.4" value="D"> D) h<sub>1</sub> &mdash; only the <code>[CLS]</code> position</label>
+    </div>
+    <div class="actions"><button onclick="check('q2.4')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+  <div class="q" id="q2.5">
+    <h3>Q2.5</h3>
+    <p class="stem">Why does <code>sentence-transformers</code> L2-normalize its output vectors by default?</p>
+    <div class="options">
+      <label><input type="radio" name="q2.5" value="A"> A) So that cosine similarity reduces to a plain dot product</label>
+      <label><input type="radio" name="q2.5" value="B"> B) So the embedding becomes sparser</label>
+      <label><input type="radio" name="q2.5" value="C"> C) To make matrix multiplication faster</label>
+      <label><input type="radio" name="q2.5" value="D"> D) Because the transformer architecture requires it</label>
+    </div>
+    <div class="actions"><button onclick="check('q2.5')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+  <div class="q" id="q2.6">
+    <h3>Q2.6 <span class="tag multi">multi</span></h3>
+    <p class="stem">Which statements about dense embeddings vs sparse bag-of-words are true?</p>
+    <div class="options">
+      <label><input type="checkbox" name="q2.6" value="A"> A) Dense embeddings can capture synonymy (<code>kitten</code> &harr; <code>cat</code>) because semantically similar inputs land at nearby points in the embedding space</label>
+      <label><input type="checkbox" name="q2.6" value="B"> B) In a dense embedding, each coordinate corresponds to a learned latent feature, <em>not</em> to a single vocabulary word</label>
+      <label><input type="checkbox" name="q2.6" value="C"> C) Sparse bag-of-words vectors have one coordinate per vocabulary term and are mostly zero</label>
+      <label><input type="checkbox" name="q2.6" value="D"> D) Dense embeddings have a variable dimension that grows with the corpus</label>
+    </div>
+    <div class="actions"><button onclick="check('q2.6')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+  <div class="q" id="q2.7">
+    <h3>Q2.7</h3>
+    <p class="stem">Query: <em>"a kitten napping on a carpet"</em>. Document: <em>"the cat sat on the mat"</em>. The Jaccard score is essentially zero (no shared content words) but the cosine over MiniLM embeddings is high. Why?</p>
+    <div class="options">
+      <label><input type="radio" name="q2.7" value="A"> A) Cosine ignores word order, whereas Jaccard does not</label>
+      <label><input type="radio" name="q2.7" value="B"> B) MiniLM is a much larger transformer than the Jaccard tokenizer</label>
+      <label><input type="radio" name="q2.7" value="C"> C) MiniLM maps semantically similar phrases to nearby points in the embedding space, even when they share no surface tokens</label>
+      <label><input type="radio" name="q2.7" value="D"> D) Cosine multiplies in extra attention weights from the <code>[CLS]</code> token</label>
+    </div>
+    <div class="actions"><button onclick="check('q2.7')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+  <div class="q" id="q2.8">
+    <h3>Q2.8 <span class="tag multi">multi</span></h3>
+    <p class="stem">Which of the following are true about chunking?</p>
+    <div class="options">
+      <label><input type="checkbox" name="q2.8" value="A"> A) Inputs longer than the model's context window are <em>silently truncated</em> &mdash; text past the cutoff is never embedded</label>
+      <label><input type="checkbox" name="q2.8" value="B"> B) Two facts inside the <em>same</em> chunk are always retrieved together &mdash; bad when they are unrelated</label>
+      <label><input type="checkbox" name="q2.8" value="C"> C) Overlap between chunks helps preserve information at chunk boundaries</label>
+      <label><input type="checkbox" name="q2.8" value="D"> D) Padding tokens change the semantic content of the pooled embedding</label>
+    </div>
+    <div class="actions"><button onclick="check('q2.8')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+  <div class="q" id="q2.9">
+    <h3>Q2.9</h3>
+    <p class="stem">Which chunking strategy <em>tries the largest available separator first</em> (e.g., paragraph &rarr; sentence &rarr; word) and falls back when a chunk is too long?</p>
+    <div class="options">
+      <label><input type="radio" name="q2.9" value="A"> A) Fixed-token windows with overlap</label>
+      <label><input type="radio" name="q2.9" value="B"> B) Sentence-based chunking</label>
+      <label><input type="radio" name="q2.9" value="C"> C) Recursive / structural chunking</label>
+      <label><input type="radio" name="q2.9" value="D"> D) Character-level chunking</label>
+    </div>
+    <div class="actions"><button onclick="check('q2.9')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+  <div class="q" id="q2.10">
+    <h3>Q2.10 <span class="tag">scenario</span></h3>
+    <p class="stem">Your pipeline chunks documents into 800-token windows with <em>zero overlap</em>. Users keep complaining that questions whose answer happens to <em>span a chunk boundary</em> (the start of the answer is in chunk 3, the end in chunk 4) fail to retrieve. Which fix targets this directly?</p>
+    <div class="options">
+      <label><input type="radio" name="q2.10" value="A"> A) Use a larger embedding model</label>
+      <label><input type="radio" name="q2.10" value="B"> B) Reduce the chunk size to 400 tokens</label>
+      <label><input type="radio" name="q2.10" value="C"> C) Add overlap (e.g. 50&ndash;100 tokens) between consecutive chunks so boundary information appears in <em>both</em> sides</label>
+      <label><input type="radio" name="q2.10" value="D"> D) Switch from cosine to dot product</label>
+    </div>
+    <div class="actions"><button onclick="check('q2.10')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION 3 -->
+<!-- ============================================================ -->
+<section id="s3">
+  <h2>&sect;3 Basic RAG <span class="sub">(notebook 3)</span><span class="secscore" id="ss3">0 / 9</span></h2>
+
+  <div class="q" id="q3.1">
+    <h3>Q3.1</h3>
+    <p class="stem">A knowledge-base record looks like:
+      <code>{doc_id: "auro-2024-launch", source: "blog", date: "2024-08-02", title: "Helios-2 launch notes", text: "..."}</code>. Which field does the encoder embed?</p>
+    <div class="options">
+      <label><input type="radio" name="q3.1" value="A"> A) <code>text</code> only</label>
+      <label><input type="radio" name="q3.1" value="B"> B) <code>source</code></label>
+      <label><input type="radio" name="q3.1" value="C"> C) <code>date</code> and <code>title</code> concatenated</label>
+      <label><input type="radio" name="q3.1" value="D"> D) All fields concatenated into one string</label>
+    </div>
+    <div class="actions"><button onclick="check('q3.1')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+  <div class="q" id="q3.2">
+    <h3>Q3.2</h3>
+    <p class="stem">"If a user can spell it, it's metadata. If the meaning matters, it's the ___."</p>
+    <div class="options">
+      <label><input type="radio" name="q3.2" value="A"> A) embedding</label>
+      <label><input type="radio" name="q3.2" value="B"> B) prompt</label>
+      <label><input type="radio" name="q3.2" value="C"> C) doc_id</label>
+      <label><input type="radio" name="q3.2" value="D"> D) reranker</label>
+    </div>
+    <div class="actions"><button onclick="check('q3.2')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+  <div class="q" id="q3.3">
+    <h3>Q3.3 <span class="tag multi">multi</span></h3>
+    <p class="stem">Which use cases belong to METADATA (rather than to the embedding)?</p>
+    <div class="options">
+      <label><input type="checkbox" name="q3.3" value="A"> A) "only return papers from 2024"</label>
+      <label><input type="checkbox" name="q3.3" value="B"> B) "only return Spanish-language documents"</label>
+      <label><input type="checkbox" name="q3.3" value="C"> C) Producing a citation (e.g. "[auro-2024-launch]")</label>
+      <label><input type="checkbox" name="q3.3" value="D"> D) Finding documents that are <em>about</em> feline naps</label>
+    </div>
+    <div class="actions"><button onclick="check('q3.3')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+  <div class="q" id="q3.4">
+    <h3>Q3.4</h3>
+    <p class="stem">You ask a bare LLM (no retrieval) "How many dimensions does the Helios-2 embedding produce?". Aurora Labs is a fictional company. What is the most likely outcome?</p>
+    <div class="options">
+      <label><input type="radio" name="q3.4" value="A"> A) The LLM either politely refuses or hallucinates a confident-sounding but invented number</label>
+      <label><input type="radio" name="q3.4" value="B"> B) The LLM correctly answers 768 from its training data</label>
+      <label><input type="radio" name="q3.4" value="C"> C) The API call always returns a network error</label>
+      <label><input type="radio" name="q3.4" value="D"> D) The API silently injects retrieval for any unknown company name</label>
+    </div>
+    <div class="actions"><button onclick="check('q3.4')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+  <div class="q" id="q3.5">
+    <h3>Q3.5 <span class="tag multi">multi</span></h3>
+    <p class="stem">A working RAG prompt is glued together from which pieces (by your application code, not by the model)?</p>
+    <div class="options">
+      <label><input type="checkbox" name="q3.5" value="A"> A) System instructions &mdash; fixed per app (tells the model what to do)</label>
+      <label><input type="checkbox" name="q3.5" value="B"> B) Retrieved chunks (the CONTEXT block) &mdash; inserted at runtime per query</label>
+      <label><input type="checkbox" name="q3.5" value="C"> C) The user's question</label>
+      <label><input type="checkbox" name="q3.5" value="D"> D) A separate chat session held with the embedding model</label>
+    </div>
+    <div class="actions"><button onclick="check('q3.5')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+  <div class="q" id="q3.6">
+    <h3>Q3.6</h3>
+    <p class="stem">Why does the notebook tag each retrieved chunk with its <code>[doc_id]</code> before pasting it into the prompt?</p>
+    <div class="options">
+      <label><input type="radio" name="q3.6" value="A"> A) So the model has a stable identifier to quote back in its answer &mdash; the cheapest form of citation</label>
+      <label><input type="radio" name="q3.6" value="B"> B) Because it raises the embedding similarity of the chunk</label>
+      <label><input type="radio" name="q3.6" value="C"> C) So all the chunks fit inside the context window</label>
+      <label><input type="radio" name="q3.6" value="D"> D) Because the Gemini API requires it</label>
+    </div>
+    <div class="actions"><button onclick="check('q3.6')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+  <div class="q" id="q3.7">
+    <h3>Q3.7</h3>
+    <p class="stem">A metadata filter like <code>source="simple-wiki"</code> is applied:</p>
+    <div class="options">
+      <label><input type="radio" name="q3.7" value="A"> A) Inside the embedding space &mdash; by adding a learned "source" dimension</label>
+      <label><input type="radio" name="q3.7" value="B"> B) On the candidate set <em>before</em> ranking by cosine &mdash; it just removes ineligible rows; no embedding math is involved</label>
+      <label><input type="radio" name="q3.7" value="C"> C) After the LLM has generated an answer, by post-filtering the output</label>
+      <label><input type="radio" name="q3.7" value="D"> D) By retraining the embedding model on the filtered subset</label>
+    </div>
+    <div class="actions"><button onclick="check('q3.7')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+  <div class="q" id="q3.8">
+    <h3>Q3.8 <span class="tag compute">compute</span></h3>
+    <p class="stem">Knowledge base has <span class="math">N = 100</span> records; embedding dimension is <span class="math">d = 384</span>. What is the shape of the corpus embedding matrix <span class="math">E</span>?</p>
+    <div class="options">
+      <label><input type="radio" name="q3.8" value="A"> A) (100, 384)</label>
+      <label><input type="radio" name="q3.8" value="B"> B) (384, 100)</label>
+      <label><input type="radio" name="q3.8" value="C"> C) (100, 100)</label>
+      <label><input type="radio" name="q3.8" value="D"> D) (384, 384)</label>
+    </div>
+    <div class="actions"><button onclick="check('q3.8')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+  <div class="q" id="q3.9">
+    <h3>Q3.9 <span class="tag">scenario</span></h3>
+    <p class="stem">A user types: "find me documents <em>about API costs</em>, but only ones published in 2025". Each KB record has a <code>year</code> field. Which architecture handles this correctly?</p>
+    <div class="options">
+      <label><input type="radio" name="q3.9" value="A"> A) Concatenate the year string into the query and trust cosine to handle both signals</label>
+      <label><input type="radio" name="q3.9" value="B"> B) Apply a metadata filter (<code>year == 2025</code>) <em>before</em> ranking; embed only "API costs" and rank the residual by cosine</label>
+      <label><input type="radio" name="q3.9" value="C"> C) Train a custom embedding model whose first coordinate encodes the year</label>
+      <label><input type="radio" name="q3.9" value="D"> D) Retrieve all 2025 documents and let the LLM filter by topic in the prompt</label>
+    </div>
+    <div class="actions"><button onclick="check('q3.9')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION 4 -->
+<!-- ============================================================ -->
+<section id="s4">
+  <h2>&sect;4 Evaluation <span class="sub">(notebook 6)</span><span class="secscore" id="ss4">0 / 12</span></h2>
+
+  <div class="q" id="q4.1">
+    <h3>Q4.1 <span class="tag compute">compute</span></h3>
+    <p class="stem">Single-answer retrieval over 10 queries. The gold document appears in the top 3 for exactly 7 of the queries. What is Recall@3?</p>
+    <div class="options">
+      <label><input type="radio" name="q4.1" value="A"> A) 0.30</label>
+      <label><input type="radio" name="q4.1" value="B"> B) 0.50</label>
+      <label><input type="radio" name="q4.1" value="C"> C) 0.70</label>
+      <label><input type="radio" name="q4.1" value="D"> D) 1.00</label>
+    </div>
+    <div class="actions"><button onclick="check('q4.1')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+  <div class="q" id="q4.2">
+    <h3>Q4.2 <span class="tag compute">compute</span></h3>
+    <p class="stem">MRR over 4 queries. The rank of the first relevant document per query is: <code>[1, 2, 5, &infin;]</code> (the 4th query never returns a relevant doc, so it contributes 0). What is MRR?</p>
+    <div class="options">
+      <label><input type="radio" name="q4.2" value="A"> A) 0.250</label>
+      <label><input type="radio" name="q4.2" value="B"> B) 0.425</label>
+      <label><input type="radio" name="q4.2" value="C"> C) 0.500</label>
+      <label><input type="radio" name="q4.2" value="D"> D) 0.700</label>
+    </div>
+    <div class="actions"><button onclick="check('q4.2')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+  <div class="q" id="q4.5">
+    <h3>Q4.5</h3>
+    <p class="stem">Why do BLEU / ROUGE silently mislead when used to score RAG generations?</p>
+    <div class="options">
+      <label><input type="radio" name="q4.5" value="A"> A) They are too slow to be practical at scale</label>
+      <label><input type="radio" name="q4.5" value="B"> B) They measure surface word overlap &mdash; an answer that is <em>confidently wrong</em> but shares most words with the gold can score higher than a correct paraphrase</label>
+      <label><input type="radio" name="q4.5" value="C"> C) They are systematically biased toward shorter answers</label>
+      <label><input type="radio" name="q4.5" value="D"> D) They require an LLM judge to compute</label>
+    </div>
+    <div class="actions"><button onclick="check('q4.5')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+  <div class="q" id="q4.6">
+    <h3>Q4.6 <span class="tag multi">multi</span></h3>
+    <p class="stem">Which RAGAS metrics evaluate the <em>generator</em> (the LLM stage)?</p>
+    <div class="options">
+      <label><input type="checkbox" name="q4.6" value="A"> A) Faithfulness</label>
+      <label><input type="checkbox" name="q4.6" value="B"> B) Answer relevancy</label>
+      <label><input type="checkbox" name="q4.6" value="C"> C) Context precision</label>
+      <label><input type="checkbox" name="q4.6" value="D"> D) Context recall</label>
+    </div>
+    <div class="actions"><button onclick="check('q4.6')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+  <div class="q" id="q4.7">
+    <h3>Q4.7 <span class="tag multi">multi</span></h3>
+    <p class="stem">Which RAGAS metrics evaluate the <em>retriever</em>?</p>
+    <div class="options">
+      <label><input type="checkbox" name="q4.7" value="A"> A) Faithfulness</label>
+      <label><input type="checkbox" name="q4.7" value="B"> B) Answer relevancy</label>
+      <label><input type="checkbox" name="q4.7" value="C"> C) Context precision</label>
+      <label><input type="checkbox" name="q4.7" value="D"> D) Context recall</label>
+    </div>
+    <div class="actions"><button onclick="check('q4.7')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+  <div class="q" id="q4.8">
+    <h3>Q4.8</h3>
+    <p class="stem">Your RAG pipeline reports: faithfulness <strong>low</strong>, answer relevancy high, context precision high, context recall high. What is the most likely cause?</p>
+    <div class="options">
+      <label><input type="radio" name="q4.8" value="A"> A) Retriever misses the documents that contain the answer</label>
+      <label><input type="radio" name="q4.8" value="B"> B) Retriever returns too much noise alongside the relevant chunks</label>
+      <label><input type="radio" name="q4.8" value="C"> C) The LLM is hallucinating <em>despite</em> good context &mdash; tighten the prompt or use a stronger generator</label>
+      <label><input type="radio" name="q4.8" value="D"> D) The embedding model is poorly trained</label>
+    </div>
+    <div class="actions"><button onclick="check('q4.8')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+  <div class="q" id="q4.9">
+    <h3>Q4.9</h3>
+    <p class="stem">Context precision is <strong>low</strong> but context recall is <strong>high</strong>. What does this mean and where should you intervene?</p>
+    <div class="options">
+      <label><input type="radio" name="q4.9" value="A"> A) The retriever surfaces the information needed to answer the question, but mixes in a lot of noise &mdash; add a reranker (notebook 5) or a metadata filter</label>
+      <label><input type="radio" name="q4.9" value="B"> B) The retriever misses information needed to answer &mdash; improve chunking or switch to hybrid BM25 + bi-encoder</label>
+      <label><input type="radio" name="q4.9" value="C"> C) The generator is hallucinating &mdash; switch to a better LLM</label>
+      <label><input type="radio" name="q4.9" value="D"> D) The judge model is biased &mdash; switch judges</label>
+    </div>
+    <div class="actions"><button onclick="check('q4.9')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+  <div class="q" id="q4.10">
+    <h3>Q4.10</h3>
+    <p class="stem">Which statement correctly distinguishes MRR from Recall@k?</p>
+    <div class="options">
+      <label><input type="radio" name="q4.10" value="A"> A) MRR ignores where in the top-k the relevant doc appears</label>
+      <label><input type="radio" name="q4.10" value="B"> B) Recall@k rewards higher positions inside the top-k more than lower positions</label>
+      <label><input type="radio" name="q4.10" value="C"> C) MRR rewards finding the first relevant document <em>earlier</em> in the ranking (rank 1 contributes 1.0; rank 5 contributes 0.2)</label>
+      <label><input type="radio" name="q4.10" value="D"> D) They are mathematically identical</label>
+    </div>
+    <div class="actions"><button onclick="check('q4.10')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+  <div class="q" id="q4.11">
+    <h3>Q4.11 <span class="tag">scenario</span></h3>
+    <p class="stem">Your customer-support bot gives confident, fluent answers about pricing. Users keep emailing back: <em>"the numbers in your bot's reply are wrong; we never had a $9.99 tier."</em> You inspect the retrieved chunks and they contain the correct prices. Which RAGAS metric is most likely <em>low</em>?</p>
+    <div class="options">
+      <label><input type="radio" name="q4.11" value="A"> A) Faithfulness</label>
+      <label><input type="radio" name="q4.11" value="B"> B) Answer relevancy</label>
+      <label><input type="radio" name="q4.11" value="C"> C) Context precision</label>
+      <label><input type="radio" name="q4.11" value="D"> D) Context recall</label>
+    </div>
+    <div class="actions"><button onclick="check('q4.11')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+  <div class="q" id="q4.12">
+    <h3>Q4.12 <span class="tag">scenario</span></h3>
+    <p class="stem">Your retriever returns top-5 chunks for every query. On inspection, only 1 of those 5 chunks is actually about the question; the other 4 are tangentially related. Final answers are still OK, but per-query token cost is roughly 4&times; what it needs to be. Which RAGAS metric flags this most directly?</p>
+    <div class="options">
+      <label><input type="radio" name="q4.12" value="A"> A) Faithfulness</label>
+      <label><input type="radio" name="q4.12" value="B"> B) Answer relevancy</label>
+      <label><input type="radio" name="q4.12" value="C"> C) Context precision</label>
+      <label><input type="radio" name="q4.12" value="D"> D) Context recall</label>
+    </div>
+    <div class="actions"><button onclick="check('q4.12')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+  <div class="q" id="q4.13">
+    <h3>Q4.13 <span class="tag">scenario</span></h3>
+    <p class="stem">Your bot keeps replying <em>"I don't know based on the provided documents"</em> &mdash; even for questions you know are fully covered in the knowledge base. You inspect the top-k retrievals and the relevant chunks aren't there. Which RAGAS metric is most likely <em>low</em>?</p>
+    <div class="options">
+      <label><input type="radio" name="q4.13" value="A"> A) Faithfulness</label>
+      <label><input type="radio" name="q4.13" value="B"> B) Answer relevancy</label>
+      <label><input type="radio" name="q4.13" value="C"> C) Context precision</label>
+      <label><input type="radio" name="q4.13" value="D"> D) Context recall</label>
+    </div>
+    <div class="actions"><button onclick="check('q4.13')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+  <div class="q" id="q4.14">
+    <h3>Q4.14 <span class="tag">scenario</span></h3>
+    <p class="stem">A user asks <em>"How much does the Helios-2 API cost?"</em>. The bot retrieves the right pricing FAQ, but its answer is a four-paragraph essay about the company's <em>mission statement</em> and never mentions the price. Which RAGAS metric is most likely <em>low</em>?</p>
+    <div class="options">
+      <label><input type="radio" name="q4.14" value="A"> A) Faithfulness</label>
+      <label><input type="radio" name="q4.14" value="B"> B) Answer relevancy</label>
+      <label><input type="radio" name="q4.14" value="C"> C) Context precision</label>
+      <label><input type="radio" name="q4.14" value="D"> D) Context recall</label>
+    </div>
+    <div class="actions"><button onclick="check('q4.14')">Check</button></div>
+    <div class="answer"></div>
+  </div>
+
+</section>
+
+</main>
+
+<script>
+// ----- Answer key + explanations ------------------------------------------------
+const ANS = {
+  // ---------------- Section 1 ----------------
+  'q1.1': { type:'single', correct:['B'],
+    explain: "Intersection = {cat, dog} &rArr; 2 elements. Union = {cat, dog, mouse, the, and, play} &rArr; 6 elements. Jaccard = 2 / 6 &asymp; 0.333." },
+  'q1.2': { type:'single', correct:['A'],
+    explain: "a &middot; b = (2)(1) + (&minus;1)(4) + (3)(2) = 2 &minus; 4 + 6 = <strong>4</strong>. This is the cancellation property &mdash; negative contributions can offset positive ones." },
+  'q1.3': { type:'single', correct:['A'],
+    explain: "a &middot; b = 3&middot;4 + 4&middot;3 = 24. |a| = &radic;(9+16) = 5, |b| = 5. cos = 24 / (5&middot;5) = <strong>0.96</strong>." },
+  'q1.4': { type:'single', correct:['C'],
+    explain: "On binary BoW, a &middot; b = |A &cap; B| = 2 (positions 0 and 2 are both 1). |A &cup; B| = |a|<sub>1</sub> + |b|<sub>1</sub> &minus; a&middot;b = 3 + 3 &minus; 2 = 4. Jaccard = 2/4 = <strong>0.5</strong>. This is the &sect;1.3 identity &mdash; Jaccard is a normalized dot product." },
+  'q1.6': { type:'multi', correct:['A','B','C'],
+    explain: "A, B, C are exactly the three weaknesses called out in &sect;1.1 (no magnitude, exact-match brittleness, stopword domination). D is false &mdash; <em>fixing</em> synonymy is what motivated embeddings in notebook 2." },
+  'q1.7': { type:'single', correct:['A'],
+    explain: "k<sub>1</sub> controls TF saturation &mdash; the curve <span class='math'>f &middot; (k<sub>1</sub>+1) / (f + k<sub>1</sub>&hellip;)</span> flattens as f grows, so the 5th occurrence of a term helps far less than the 1st. The <em>b</em> parameter (not k<sub>1</sub>) controls length normalization." },
+  'q1.8': { type:'multi', correct:['A','B','C'],
+    explain: "Every classical IR score in the notebook is an inner product on some sparse vector: Jaccard normalizes the dot product on binary BoW; TF-IDF cosine uses TF-IDF weighted vectors; BM25 uses saturated, length-normalized TF vectors weighted by IDF. Edit distance is <em>not</em> a dot product &mdash; it's a sequence-alignment metric." },
+  'q1.9': { type:'single', correct:['A'],
+    explain: "&sect;1.2's example: weights = [+1, +1, &minus;2] over features [mentions_cat, mentions_dog, is_techy]. The &minus;2 weight <em>pushes down</em> technical docs &mdash; positive and negative contributions cancel inside one inner product. That signed-cancellation is the whole reason linear models can be selective." },
+  'q1.10': { type:'single', correct:['B'],
+    explain: "Length normalization is the <span class='math'>b</span> parameter (default 0.75): the denominator contains <span class='math'>k<sub>1</sub>(1 &minus; b + b &middot; |d|/avgdl)</span>, which scales up for longer documents and dampens their TF contribution. <span class='math'>k<sub>1</sub></span> controls TF saturation (how fast repeated terms stop helping), not length. Cranking <span class='math'>b</span> up to 1 punishes long docs harder." },
+  'q1.11': { type:'single', correct:['A'],
+    explain: "The saturation curve <span class='math'>f &middot; (k<sub>1</sub>+1) / (f + k<sub>1</sub>(&hellip;))</span> flattens out: going from TF=1 to TF=2 gives a big jump, going from TF=20 to TF=21 barely moves the score. The intuition is purely about <em>relevance signal</em> &mdash; a 1000-word document doesn't become 10&times; more about cats because it says the word ten times. B/C/D are not the reasons." },
+  'q1.12': { type:'multi', correct:['A','B','C'],
+    explain: "BM25 = IDF &times; (saturated, length-normalized TF), summed over query terms. So it picks up TF (A), IDF (B), and length normalization (C) on top of plain set overlap. It does <em>not</em> capture synonymy (D) &mdash; surface tokens must still match. That's why hybrid BM25 + embedding retrieval remains the standard production baseline: BM25 catches exact-identifier matches, embeddings catch synonyms." },
+  'q1.13': { type:'single', correct:['C'],
+    explain: "When <span class='math'>n<sub>t</sub></span> approaches <span class='math'>N</span>, the numerator <span class='math'>N &minus; n<sub>t</sub> + 0.5</span> shrinks toward 0.5 while the denominator <span class='math'>n<sub>t</sub> + 0.5</span> grows toward N + 0.5. The ratio drops below 1, so <code>ln(...)</code> goes <strong>negative</strong>. The &ldquo;+0.5&rdquo; smoothing isn't a numerical fix &mdash; it's a deliberate feature that <em>punishes</em> matches on uninformative words. Many BM25 implementations clamp this to zero; the original formula does not." },
+
+  // ---------------- Section 2 ----------------
+  'q2.1': { type:'single', correct:['B'],
+    explain: "Both vectors are unit norm, so cosine = dot product = 0.6&middot;0.8 + 0.8&middot;0.6 = 0.48 + 0.48 = <strong>0.96</strong>. This is the &sect;2.1 punchline: normalized embeddings make cosine and dot product the same operation." },
+  'q2.2': { type:'single', correct:['B'],
+    explain: "MiniLM-L6-v2 has hidden_size = <strong>384</strong>. The encoder pools the per-token hidden states down to one 384-dim vector per sentence." },
+  'q2.3': { type:'single', correct:['A'],
+    explain: "<code>last_hidden_state.shape = (batch, seq_len, hidden_dim) = (2, 8, 384)</code>. One hidden vector per token per sentence." },
+  'q2.4': { type:'single', correct:['B'],
+    explain: "Mean pooling masks out pad positions: multiply hidden states by the mask, sum, and divide by the count of <em>real</em> tokens (3 here, not 4). Dividing by 4 would dilute the embedding with zeros from the pad token." },
+  'q2.5': { type:'single', correct:['A'],
+    explain: "If <span class='math'>||a|| = ||b|| = 1</span> then <span class='math'>cos(a,b) = a &middot; b / (||a|| ||b||) = a &middot; b</span>. The vector database can therefore rank purely with matrix-multiplies and skip the per-pair norm computation." },
+  'q2.6': { type:'multi', correct:['A','B','C'],
+    explain: "A, B, C all hold. D is wrong &mdash; an embedding model has <em>fixed</em> output dimension (384 for MiniLM-L6-v2); it does not grow with corpus size. <em>Sparse</em> BoW vectors do scale with the vocabulary, which is the opposite property." },
+  'q2.7': { type:'single', correct:['C'],
+    explain: "MiniLM was trained with contrastive learning on a billion paraphrase pairs, so synonym pairs (kitten/cat, carpet/mat) end up at nearby points in the 384-dim space. Jaccard cannot see this because it operates on surface tokens. This single example is the whole pitch for semantic retrieval." },
+  'q2.8': { type:'multi', correct:['A','B','C'],
+    explain: "A, B, C are correct. D is wrong: the attention mask zeroes out padded positions so the transformer ignores them, and mean pooling divides only by the count of real tokens. Padding affects batching, not semantics." },
+  'q2.9': { type:'single', correct:['C'],
+    explain: "Recursive / structural chunking tries the largest separator first (e.g. <code>\\n\\n</code>), falls back to <code>\\n</code>, then to <code>\". \"</code>, then to spaces &mdash; the strategy popularized by LangChain's <code>RecursiveCharacterTextSplitter</code>. It usually keeps prose chunks intact." },
+  'q2.10': { type:'single', correct:['C'],
+    explain: "Overlap is exactly the fix for boundary-spanning answers &mdash; the same window of tokens shows up at the end of chunk N and at the start of chunk N+1, so a query that hits the boundary still has at least one chunk containing the whole answer. The notebook calls out 50&ndash;100 token overlap as the production default for prose. Shrinking the chunk size (B) actually makes the problem worse &mdash; more boundaries." },
+
+  // ---------------- Section 3 ----------------
+  'q3.1': { type:'single', correct:['A'],
+    explain: "Only the <code>text</code> field is passed to the encoder. The other fields (<code>doc_id</code>, <code>source</code>, <code>date</code>, <code>title</code>) are <em>metadata</em> &mdash; used for filters, citations, and display, but never embedded." },
+  'q3.2': { type:'single', correct:['A'],
+    explain: "The notebook's rule of thumb: spellable / exact attributes go in metadata; semantic content goes in the <strong>embedding</strong>. Filter by metadata, rank by embedding, cite from metadata." },
+  'q3.3': { type:'multi', correct:['A','B','C'],
+    explain: "Year filters, language filters, and citation rendering are all metadata operations &mdash; structured fields, exact match. D (&ldquo;about feline naps&rdquo;) is a semantic-similarity question, so it belongs to the embedding." },
+  'q3.4': { type:'single', correct:['A'],
+    explain: "Aurora Labs is fictional, so its specs are not in the LLM's training data. Bare LLMs either refuse or invent confident-sounding numbers &mdash; that's the &sect;3.6 hallucination demo. Hooking up retrieval fixes the bug because the chunks contain the actual fact." },
+  'q3.5': { type:'multi', correct:['A','B','C'],
+    explain: "&sect;3.3: the three glued-together pieces are system instructions + CONTEXT block + the user QUESTION. D is wrong &mdash; you do not chat with the embedding model. The encoder turns text into vectors, full stop." },
+  'q3.6': { type:'single', correct:['A'],
+    explain: "Tagging each chunk with <code>[doc_id]</code> gives the LLM a stable handle to quote in its answer &mdash; the cheapest form of citation. The model has nothing else to point at; the doc_id is your traceability." },
+  'q3.7': { type:'single', correct:['B'],
+    explain: "&sect;3.2 implements the filter as a plain list comprehension <em>before</em> the cosine ranking step. Filters live outside the embedding space &mdash; they remove ineligible candidates, and the embedding model never sees them. That's why &ldquo;semantic search on a date field&rdquo; is a confused operation." },
+  'q3.8': { type:'single', correct:['A'],
+    explain: "One row per document, one column per embedding coordinate &rArr; <code>E.shape = (N, d) = (100, 384)</code>. The full corpus retrieval is then <code>scores = E @ q</code> &mdash; a single matrix-vector product of shape (100, 384) &middot; (384,) &rarr; (100,)." },
+  'q3.9': { type:'single', correct:['B'],
+    explain: "Exact attributes (year = 2025) are metadata &mdash; apply them as a hard filter <em>before</em> ranking, so the cosine ranker only sees eligible candidates. Then embed the semantic part (&ldquo;API costs&rdquo;) and rank the residual. A is wrong because cosine can't reliably enforce exact-year matching; C is overkill; D wastes tokens and trusts the LLM to do retrieval's job." },
+
+  // ---------------- Section 4 ----------------
+  'q4.1': { type:'single', correct:['C'],
+    explain: "Single-answer Recall@k = (# queries whose gold appears in top-k) / (total queries) = 7 / 10 = <strong>0.70</strong>." },
+  'q4.2': { type:'single', correct:['B'],
+    explain: "MRR = mean(1/rank) over queries, with 0 when no relevant doc is found. (1/1 + 1/2 + 1/5 + 0) / 4 = (1 + 0.5 + 0.2 + 0) / 4 = 1.7 / 4 = <strong>0.425</strong>." },
+  'q4.5': { type:'single', correct:['B'],
+    explain: "&sect;6.2's demo: \"Hillery served as President from <em>1986</em> until 1990\" shares almost every word with the gold \"&hellip; from 1976 until 1990\" &mdash; one digit different &mdash; and ROUGE rates it <em>higher</em> than a correct paraphrase. Surface-overlap metrics measure how strings <em>look</em>, not what they <em>mean</em>." },
+  'q4.6': { type:'multi', correct:['A','B'],
+    explain: "Faithfulness asks &ldquo;is the answer grounded in the context?&rdquo; and answer relevancy asks &ldquo;does the answer address the question?&rdquo; &mdash; both judge the LLM stage given fixed context. Context precision/recall judge the retriever." },
+  'q4.7': { type:'multi', correct:['C','D'],
+    explain: "Context precision = &ldquo;of the chunks retrieved, how many are useful?&rdquo;. Context recall = &ldquo;did we retrieve enough to fully answer the question?&rdquo;. Both depend only on what the retriever returned, not on what the LLM wrote." },
+  'q4.8': { type:'single', correct:['C'],
+    explain: "Good retrieval (high precision + recall) plus on-topic answers (high relevancy) but the answer drifts from the chunks (low faithfulness) &rArr; the LLM is fabricating despite having the facts. Fix the generator side: tighter prompt (&ldquo;Only use information from the CONTEXT block&hellip;&rdquo;), lower temperature, or a stronger model." },
+  'q4.9': { type:'single', correct:['A'],
+    explain: "High recall = the needed info is in the bundle. Low precision = lots of noise alongside. Classic reranker problem &mdash; the cross-encoder in notebook 5 promotes the truly relevant chunks; metadata filters remove obviously-wrong sources." },
+  'q4.10': { type:'single', correct:['C'],
+    explain: "MRR weights by 1/rank: rank 1 = 1.0, rank 2 = 0.5, rank 5 = 0.2. Recall@k is binary &mdash; it just asks &ldquo;was the gold in the top-k at all?&rdquo; and does not care <em>where</em> in the top-k. So MRR is the metric to use when you care about ranking quality near the top." },
+  'q4.11': { type:'single', correct:['A'],
+    explain: "Retrieval is fine (correct chunks in context) and the answer addresses the question (high answer relevancy) &mdash; but the bot is <em>making up numbers</em> that the context does not support. That's exactly what <strong>faithfulness</strong> measures: split the answer into atomic claims and ask whether each is entailed by the context. Fabricated prices &rArr; low faithfulness." },
+  'q4.12': { type:'single', correct:['C'],
+    explain: "<strong>Context precision</strong> = &ldquo;of the chunks retrieved, how many are useful for the question?&rdquo;. 1 useful out of 5 retrieved is precision &asymp; 0.2 &mdash; the retriever is dragging in noise. Context recall is still <em>high</em> (the needed info is there); answers may still be correct, but you're paying 4&times; the tokens. Standard fix: add a reranker (notebook 5) or a metadata filter." },
+  'q4.13': { type:'single', correct:['D'],
+    explain: "<strong>Context recall</strong> = &ldquo;is what you need to answer actually in the retrieved chunks?&rdquo;. The bot refuses because it followed the prompt rule (&ldquo;reply &lsquo;I don't know&rsquo; if the context is silent&rdquo;) &mdash; not because the LLM is broken. Low recall &rArr; fix chunking, hybrid BM25+embedding, or query rewriting. Faithfulness/relevancy aren't the issue: the generator behaved correctly given the (insufficient) context." },
+  'q4.14': { type:'single', correct:['B'],
+    explain: "<strong>Answer relevancy</strong> measures whether the answer addresses the question that was asked. Retrieval was correct (high precision/recall), and the answer doesn't fabricate facts &mdash; it just talks about the wrong thing. The RAGAS trick: generate N questions from the bot's answer and measure cosine to the original. An off-topic answer regenerates off-topic questions, so similarity to the user's actual question drops." }
+};
+
+// ----- Live state -----------------------------------------------------------
+const TOTAL = Object.keys(ANS).length;
+document.getElementById('total').textContent = TOTAL;
+const score = {};   // q-id -> 1 (correct), 0 (wrong), -1 (partial, no point)
+
+const SECTION_MEMBERS = { 1: [], 2: [], 3: [], 4: [] };
+for (const id of Object.keys(ANS)) {
+  const sec = id.charAt(1);
+  SECTION_MEMBERS[sec].push(id);
+}
+
+function getSelection(qid) {
+  const inputs = document.querySelectorAll(`input[name="${qid}"]`);
+  const sel = [];
+  inputs.forEach(i => { if (i.checked) sel.push(i.value); });
+  return sel;
+}
+
+function setEqual(a, b) {
+  if (a.length !== b.length) return false;
+  const sa = new Set(a), sb = new Set(b);
+  for (const x of sa) if (!sb.has(x)) return false;
+  return true;
+}
+
+function setOverlap(a, b) {
+  const sb = new Set(b);
+  let hits = 0;
+  for (const x of a) if (sb.has(x)) hits++;
+  return hits;
+}
+
+function check(qid) {
+  const meta = ANS[qid];
+  const card = document.getElementById(qid);
+  const ansBox = card.querySelector('.answer');
+  const sel = getSelection(qid);
+
+  if (sel.length === 0) {
+    ansBox.className = 'answer wrong show';
+    ansBox.innerHTML = '<span class="verdict">No selection.</span><span class="explain">Pick at least one option, then press Check again.</span>';
+    return;
+  }
+
+  // Reset option highlights
+  card.querySelectorAll('.options label').forEach(lbl => {
+    lbl.classList.remove('ans-correct','ans-wrong','ans-missed');
+  });
+
+  // Highlight each option
+  card.querySelectorAll(`input[name="${qid}"]`).forEach(inp => {
+    const lbl = inp.closest('label');
+    const isCorrect = meta.correct.includes(inp.value);
+    const isPicked  = inp.checked;
+    if (isPicked && isCorrect)   lbl.classList.add('ans-correct');
+    else if (isPicked && !isCorrect) lbl.classList.add('ans-wrong');
+    else if (!isPicked && isCorrect) lbl.classList.add('ans-missed');
+  });
+
+  card.classList.remove('correct','wrong','partial');
+  ansBox.className = 'answer show';
+
+  const correct = setEqual(sel, meta.correct);
+  const overlap = setOverlap(sel, meta.correct);
+  const hasWrong = sel.some(v => !meta.correct.includes(v));
+  const correctLabel = meta.correct.join(', ');
+
+  if (correct) {
+    score[qid] = 1;
+    card.classList.add('correct');
+    ansBox.classList.add('correct');
+    ansBox.innerHTML =
+      `<span class="verdict">&#10003; Correct &mdash; ${correctLabel}</span>` +
+      `<div class="explain">${meta.explain}</div>`;
+  } else if (meta.type === 'multi' && overlap > 0 && !hasWrong) {
+    // some right answers picked, no wrong picks, but missed some
+    score[qid] = -1;
+    card.classList.add('partial');
+    ansBox.classList.add('partial');
+    ansBox.innerHTML =
+      `<span class="verdict">~ Partially correct &mdash; full answer: ${correctLabel}</span>` +
+      `<div class="explain">${meta.explain}</div>`;
+  } else if (meta.type === 'multi' && overlap > 0 && hasWrong) {
+    score[qid] = -1;
+    card.classList.add('partial');
+    ansBox.classList.add('partial');
+    ansBox.innerHTML =
+      `<span class="verdict">~ Mixed &mdash; you have some right and some wrong. Full answer: ${correctLabel}</span>` +
+      `<div class="explain">${meta.explain}</div>`;
+  } else {
+    score[qid] = 0;
+    card.classList.add('wrong');
+    ansBox.classList.add('wrong');
+    ansBox.innerHTML =
+      `<span class="verdict">&#10007; Not quite &mdash; correct answer: ${correctLabel}</span>` +
+      `<div class="explain">${meta.explain}</div>`;
+  }
+
+  updateScores();
+}
+
+function updateScores() {
+  let total = 0;
+  for (const k of Object.keys(score)) if (score[k] === 1) total++;
+  document.getElementById('score').textContent = total;
+  for (const sec of ['1','2','3','4']) {
+    let s = 0;
+    for (const id of SECTION_MEMBERS[sec]) if (score[id] === 1) s++;
+    document.getElementById('ss' + sec).textContent =
+      `${s} / ${SECTION_MEMBERS[sec].length}`;
+  }
+}
+
+function revealAll() {
+  for (const qid of Object.keys(ANS)) {
+    const meta = ANS[qid];
+    const card = document.getElementById(qid);
+    // pre-fill the correct answer so the user can see it highlighted
+    card.querySelectorAll(`input[name="${qid}"]`).forEach(inp => {
+      const lbl = inp.closest('label');
+      lbl.classList.remove('ans-correct','ans-wrong','ans-missed');
+      if (meta.correct.includes(inp.value)) lbl.classList.add('ans-correct');
+    });
+    card.classList.remove('correct','wrong','partial');
+    const ansBox = card.querySelector('.answer');
+    ansBox.className = 'answer show';
+    ansBox.innerHTML =
+      `<span class="verdict">Answer: ${meta.correct.join(', ')}</span>` +
+      `<div class="explain">${meta.explain}</div>`;
+  }
+}
+
+function resetAll() {
+  for (const qid of Object.keys(ANS)) {
+    delete score[qid];
+    const card = document.getElementById(qid);
+    card.classList.remove('correct','wrong','partial');
+    card.querySelectorAll(`input[name="${qid}"]`).forEach(inp => {
+      inp.checked = false;
+      const lbl = inp.closest('label');
+      lbl.classList.remove('ans-correct','ans-wrong','ans-missed');
+    });
+    const ansBox = card.querySelector('.answer');
+    ansBox.className = 'answer';
+    ansBox.innerHTML = '';
+  }
+  updateScores();
+}
+
+updateScores();
+</script>
+</body>
+</html>
